@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Jeffail/gabs"
 	"github.com/kyokomi/emoji/v2"
@@ -21,59 +22,71 @@ var Config = config.Configuration{}
 type ApiResponse struct {
 	success string
 }
-var rootCmd = &cobra.Command{
-	Use:   "canihasvaccine",
-	Short: "Lookup if your year is allowed to register for a vaccine",
-	Long: `A simple API reader to parse the output of coronatest.nl API server`,
-	Args: cobra.MinimumNArgs(0),
-	Run: func(cmd *cobra.Command, args []string) {
 
-		yearFlag, err := cmd.Flags().GetString("year")
-		if err != nil {
-			fmt.Printf("ERROR: could not parse command line flags, error: %v\n", err)
-			os.Exit(1)
-		}
+var rootCmd = NewRootCmd()
 
-		var year string
-		if yearFlag != "" {
-			year = yearFlag
-		} else if Config.Year != "" {
-			year = Config.Year
-		} else {
-			fmt.Println("ERROR: you must specify the year with the --year command line flag")
-			os.Exit(1)
-		}
+func NewRootCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "canihasvaccine",
+		Short: "Lookup if your year is allowed to register for a vaccine",
+		Long:  `A simple API reader to parse the output of coronatest.nl API server`,
+		Args:  cobra.MinimumNArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
 
-		if canIHasVaccine(year) {
-			fmt.Println(emoji.Sprint(":syringe: Yes you can! HOORAY!!! :syringe:"))
-		} else {
-			fmt.Println(emoji.Sprint(":mask: Not yet. try again tomorrow... :mask:"))
-		}
-	},
+			yearFlag, err := cmd.Flags().GetString("year")
+			if err != nil {
+				_, _ = fmt.Fprintf(cmd.OutOrStderr(), "ERROR: could not parse command line flags, error: %v\n", err)
+				return err
+			}
+
+			var year string
+			if yearFlag != "" {
+				year = yearFlag
+			} else if Config.Year != "" {
+				year = Config.Year
+			} else {
+				_, _ = fmt.Fprintln(cmd.OutOrStderr(), "ERROR: you must specify the year with the --year command line flag")
+				return errors.New("year flag not supplied by comand line flag or configuration file")
+			}
+
+			canIHasIt, err := canIHasVaccine(year, cmd)
+			if err != nil {
+				_, _ = fmt.Fprintf(cmd.OutOrStderr(), "ERROR: querying the API server failed, error: %v", err)
+				return err
+			}
+			if canIHasIt {
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), emoji.Sprint(":syringe: Yes you can! HOORAY!!! :syringe:"))
+			} else {
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), emoji.Sprint(":mask: Not yet. try again tomorrow... :mask:"))
+			}
+
+			return nil
+		},
+	}
 }
 
-func canIHasVaccine(year string) bool {
+func canIHasVaccine(year string, cmd *cobra.Command) (bool, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/%s", ApiEndpoint, fmt.Sprintf(UrlTemplate, year)))
 	if err != nil {
 		fmt.Printf("ERROR: API server returned an error: %s", err.Error())
-		os.Exit(1)
+		return false, err
 	}
 
 	respData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("ERROR: could not read response from API server, error: %v", err)
-		os.Exit(1)
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "ERROR: could not read response from API server, error: %v", err)
+		return false, err
 	}
 
 	jsonObj, err := gabs.ParseJSON([]byte(respData))
 	if err != nil {
-		fmt.Printf("ERROR: data from API server is corrupted")
-		os.Exit(1)
+		_, _ = fmt.Fprintf(cmd.OutOrStderr(), "ERROR: data from API server is corrupted")
+		return false, err
 	}
 
 	value := jsonObj.Path("success").String()
 
-	return value == "true"
+	return value == "true", nil
 }
 
 func init() {
