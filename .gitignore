@@ -16,6 +16,8 @@
 #
 .idea
 
+target/
+
 canihasvaccine
 canihasvaccine.*
 canihasvaccine-*
