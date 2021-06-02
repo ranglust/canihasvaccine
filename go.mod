@@ -6,4 +6,5 @@ require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/kyokomi/emoji/v2 v2.2.8
 	github.com/spf13/cobra v1.1.3
+	github.com/spf13/viper v1.7.0
 )
