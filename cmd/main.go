@@ -26,7 +26,7 @@ type ApiResponse struct {
 var rootCmd = NewRootCmd()
 
 func NewRootCmd() *cobra.Command {
-	return &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:   "canihasvaccine",
 		Short: "Lookup if your year is allowed to register for a vaccine",
 		Long:  `A simple API reader to parse the output of coronatest.nl API server`,
@@ -46,7 +46,7 @@ func NewRootCmd() *cobra.Command {
 				year = Config.Year
 			} else {
 				_, _ = fmt.Fprintln(cmd.OutOrStderr(), "ERROR: you must specify the year with the --year command line flag")
-				return errors.New("year flag not supplied by comand line flag or configuration file")
+				return errors.New("year flag not supplied by command line flag or configuration file")
 			}
 
 			canIHasIt, err := canIHasVaccine(year, cmd)
@@ -63,6 +63,9 @@ func NewRootCmd() *cobra.Command {
 			return nil
 		},
 	}
+	rootCmd.Flags().StringP("year", "y", "", "Year (#### format, i.e. 1999)")
+
+	return rootCmd
 }
 
 func canIHasVaccine(year string, cmd *cobra.Command) (bool, error) {
@@ -93,7 +96,7 @@ func init() {
 	initViper()
 	viperReadConfig(&Config)
 
-	rootCmd.Flags().StringP("year", "y", "", "Year (#### format, i.e. 1999)")
+	//rootCmd.Flags().StringP("year", "y", "", "Year (#### format, i.e. 1999)")
 }
 
 
