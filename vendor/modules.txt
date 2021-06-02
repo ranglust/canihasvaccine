@@ -1,0 +1,13 @@
+# github.com/Jeffail/gabs v1.4.0
+## explicit
+github.com/Jeffail/gabs
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/kyokomi/emoji/v2 v2.2.8
+## explicit
+github.com/kyokomi/emoji/v2
+# github.com/spf13/cobra v1.1.3
+## explicit
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.5
+github.com/spf13/pflag
